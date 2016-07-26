@@ -19,6 +19,8 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
+import org.json.JSONException;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -26,6 +28,7 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -34,6 +37,7 @@ import java.util.List;
 public class ForecastFragment extends Fragment {
     private static final String CODE = "94043";
     private static final int DAYS = 7;
+    private ArrayAdapter<String> mForecastAdapter;
 
     public ForecastFragment() {
     }
@@ -56,8 +60,7 @@ public class ForecastFragment extends Fragment {
         forecastList.add("Thurs - Rainy - 64 / 51");
         forecastList.add("Fri - Foggy - 70 / 46");
         forecastList.add("Sat - Sunny - 76 / 68");
-
-        ArrayAdapter<String> mForecastAdapter = new ArrayAdapter<>(getActivity(), R.layout.view_list_item_forecast, R.id.list_item_forecast_textview, forecastList);
+        mForecastAdapter = new ArrayAdapter<>(getActivity(), R.layout.view_list_item_forecast, R.id.list_item_forecast_textview, forecastList);
 
         ListView forecastListView = (ListView) rootView.findViewById(R.id.listview_forecast);
         forecastListView.setAdapter(mForecastAdapter);
@@ -83,7 +86,7 @@ public class ForecastFragment extends Fragment {
         return super.onOptionsItemSelected(item);
     }
 
-    private class WeatherRequestTask extends AsyncTask<String, Void, String> {
+    private class WeatherRequestTask extends AsyncTask<String, Void, String[]> {
         private final String LOG_TAG = WeatherRequestTask.class.getSimpleName();
         private String zipCode;
         private int numDays;
@@ -100,11 +103,23 @@ public class ForecastFragment extends Fragment {
         }
 
         @Override
-        protected String doInBackground(String... params) {
+        protected String[] doInBackground(String... params) {
             return getJsonDataFromWeatherApI(zipCode, numDays);
         }
 
-        private String getJsonDataFromWeatherApI(String zipCode, int numDays) {
+        @Override
+        protected void onPostExecute(String[] result) {
+            if(result!=null) {
+                List<String> weekForecast = new ArrayList<>(Arrays.asList(result));
+                mForecastAdapter.clear();
+                for (String forecast : weekForecast) {
+                    mForecastAdapter.add(forecast);
+                }
+                mForecastAdapter.notifyDataSetChanged();
+            }
+        }
+
+        private String[] getJsonDataFromWeatherApI(String zipCode, int numDays) {
             HttpURLConnection urlConnection = null;
             BufferedReader reader = null;
 
@@ -149,6 +164,14 @@ public class ForecastFragment extends Fragment {
                     return null;
                 }
                 forecastJsonStr = buffer.toString();
+                Log.i(LOG_TAG, "Forecast output : json : " + forecastJsonStr);
+
+                try {
+                    return WeatherDataParser.getWeatherDataFromJson(forecastJsonStr, numDays);
+                } catch (JSONException e) {
+                    Log.e(LOG_TAG, e.getMessage());
+                }
+
             } catch (IOException e) {
                 Log.e(LOG_TAG, "Error ", e);
                 // If the code didn't successfully get the weather data, there's no point in attemping
@@ -166,8 +189,7 @@ public class ForecastFragment extends Fragment {
                     }
                 }
             }
-            Log.i(LOG_TAG, "Forecast output : json : " + forecastJsonStr);
-            return forecastJsonStr;
+            return null;
         }
     }
 }
