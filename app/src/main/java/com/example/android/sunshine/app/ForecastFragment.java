@@ -4,9 +4,12 @@ package com.example.android.sunshine.app;
  * Created by arbalan on 7/16/16.
  */
 
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.util.Log;
@@ -16,6 +19,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
@@ -35,7 +39,6 @@ import java.util.List;
  * A placeholder fragment containing a simple view.
  */
 public class ForecastFragment extends Fragment {
-    private static final String CODE = "94043";
     private static final int DAYS = 7;
     private ArrayAdapter<String> mForecastAdapter;
 
@@ -54,17 +57,18 @@ public class ForecastFragment extends Fragment {
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
 
         List<String> forecastList = new ArrayList<>();
-        forecastList.add("Today - Sunny - 88 / 63");
-        forecastList.add("Tomorrow - Foggy - 70 / 46");
-        forecastList.add("Weds - Cloudy - 72 / 63");
-        forecastList.add("Thurs - Rainy - 64 / 51");
-        forecastList.add("Fri - Foggy - 70 / 46");
-        forecastList.add("Sat - Sunny - 76 / 68");
         mForecastAdapter = new ArrayAdapter<>(getActivity(), R.layout.view_list_item_forecast, R.id.list_item_forecast_textview, forecastList);
 
         ListView forecastListView = (ListView) rootView.findViewById(R.id.listview_forecast);
         forecastListView.setAdapter(mForecastAdapter);
-
+        forecastListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Intent activityIntent = new Intent(getActivity(), DetailActivity.class);
+                activityIntent.putExtra(Intent.EXTRA_TEXT, mForecastAdapter.getItem(position));
+                startActivity(activityIntent);
+            }
+        });
         return rootView;
     }
 
@@ -79,11 +83,23 @@ public class ForecastFragment extends Fragment {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_refresh) {
-            new WeatherRequestTask(CODE, DAYS).execute();
+           updateWeatherData();
             return true;
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        updateWeatherData();
+    }
+
+    private void updateWeatherData(){
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        String location = preferences.getString(getString(R.string.pref_location_key), getString(R.string.pref_location_default));
+        new WeatherRequestTask(location, DAYS).execute();
     }
 
     private class WeatherRequestTask extends AsyncTask<String, Void, String[]> {
@@ -109,7 +125,7 @@ public class ForecastFragment extends Fragment {
 
         @Override
         protected void onPostExecute(String[] result) {
-            if(result!=null) {
+            if (result != null) {
                 List<String> weekForecast = new ArrayList<>(Arrays.asList(result));
                 mForecastAdapter.clear();
                 for (String forecast : weekForecast) {
