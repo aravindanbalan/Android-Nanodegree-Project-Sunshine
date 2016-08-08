@@ -83,7 +83,7 @@ public class ForecastFragment extends Fragment {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_refresh) {
-           updateWeatherData();
+            updateWeatherData();
             return true;
         }
 
@@ -96,7 +96,7 @@ public class ForecastFragment extends Fragment {
         updateWeatherData();
     }
 
-    private void updateWeatherData(){
+    private void updateWeatherData() {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
         String location = preferences.getString(getString(R.string.pref_location_key), getString(R.string.pref_location_default));
         new WeatherRequestTask(location, DAYS).execute();
@@ -142,6 +142,12 @@ public class ForecastFragment extends Fragment {
             // Will contain the raw JSON response as a string.
             String forecastJsonStr = null;
 
+            SharedPreferences sharedPrefs =
+                    PreferenceManager.getDefaultSharedPreferences(getActivity());
+            String unitType = sharedPrefs.getString(
+                    getString(R.string.pref_temp_key),
+                    getString(R.string.pref_temp_default));
+
             try {
                 Uri.Builder builder = new Uri.Builder().encodedPath(BASE_URL)
                         .appendQueryParameter(QUERY_PARAM, zipCode)
@@ -183,7 +189,7 @@ public class ForecastFragment extends Fragment {
                 Log.i(LOG_TAG, "Forecast output : json : " + forecastJsonStr);
 
                 try {
-                    return WeatherDataParser.getWeatherDataFromJson(forecastJsonStr, numDays);
+                    return WeatherDataParser.getWeatherDataFromJson(getContext(), forecastJsonStr, numDays, unitType);
                 } catch (JSONException e) {
                     Log.e(LOG_TAG, e.getMessage());
                 }

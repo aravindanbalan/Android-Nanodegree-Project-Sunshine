@@ -1,5 +1,6 @@
 package com.example.android.sunshine.app;
 
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.ListPreference;
 import android.preference.Preference;
@@ -19,6 +20,7 @@ public class SettingsActivity extends PreferenceActivity
 
         addPreferencesFromResource(R.xml.pref_general);
         bindPreferenceSummaryToValue(findPreference(getString(R.string.pref_location_key)));
+        bindPreferenceSummaryToValue(findPreference(getString(R.string.pref_temp_key)));
     }
 
     /**
@@ -49,12 +51,27 @@ public class SettingsActivity extends PreferenceActivity
             int prefIndex = listPreference.findIndexOfValue(stringValue);
             if (prefIndex >= 0) {
                 preference.setSummary(listPreference.getEntries()[prefIndex]);
+                updateTemperatureUnit(listPreference.getEntries()[prefIndex]);
             }
         } else {
             // For other preferences, set the summary to the value's simple string representation.
             preference.setSummary(stringValue);
+            updateLocationZipCode(stringValue);
         }
         return true;
     }
 
+    private void updateLocationZipCode(String zipCode) {
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putString(getString(R.string.pref_location_key), zipCode);
+        editor.commit();
+    }
+
+    private void updateTemperatureUnit(CharSequence unit) {
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putString(getString(R.string.pref_temp_key), unit.toString());
+        editor.commit();
+    }
 }
